@@ -1,0 +1,8 @@
+.grid {
+  width: 390px;
+  height: 390px;
+}
+
+.grid-item {
+  display: inline-block;
+}
