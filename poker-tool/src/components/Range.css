@@ -1,6 +1,11 @@
-.grid {
+.grid-square {
   width: 390px;
   height: 390px;
+}
+
+.grid-mosaic {
+  width: 595px;
+  height: 750px;
 }
 
 .grid-item {

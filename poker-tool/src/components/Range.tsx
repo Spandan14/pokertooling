@@ -2,7 +2,7 @@ import './Range.css'
 import { Box } from '@mui/material';
 import React, { useEffect } from 'react';
 import Isotope from 'isotope-layout';
-import type { Range } from '../range_mgr/types.ts';
+import type { Hand, Range } from '../range_mgr/types.ts';
 import { handSerializer, sortHands } from '../range_mgr/utils.ts';
 
 export const RangeModeUnion = {
@@ -27,16 +27,39 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
         itemSelector: '.grid-item',
         layoutMode: 'masonry',
         masonry: {
-          columnWidth: 30,
           horizontalOrder: true,
         },
       });
     }
 
+    const adjustSmallSquares = () => {
+      const items = document.querySelectorAll<HTMLDivElement>('.grid-item');
+
+      items.forEach((item) => {
+        const width = item.offsetWidth;
+        const height = item.offsetHeight;
+
+        // Match exactly 30x30 px
+        if (width === 30 && height === 30) {
+          const offset = parseInt(item.dataset.offset);
+
+          const currentLeft = parseFloat(item.style.left || '0');
+          console.log(item.dataset);
+          item.style.left = `${currentLeft + offset}px`;
+        }
+      });
+    };
+
+    // Wait for Isotope to finish layout
+    if (props.rangeMode === RangeModeUnion.MOSAIC) {
+      iso.current?.on('layoutComplete', adjustSmallSquares);
+      iso.current?.layout(); // trigger layout manually just in case
+    }
+
     return () => {
       iso.current?.destroy();
     }
-  }, []);
+  }, [props.rangeMode]);
 
   const rangeHands = sortHands(Array.from(props.range.range.keys()));
   const widths = rangeHands.map((hand) => {
@@ -49,10 +72,49 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
       : ((!hand.suited && hand.firstRank !== hand.secondRank) ? '60px' : '30px');
   });
 
+  const gridClass = props.rangeMode === RangeModeUnion.SQUARE ? 'grid-square' : 'grid-mosaic';
+
+  // mosaic mode extra spacer insertion
+  // const generateMosaic = () => {
+  //   const boxes = [];
+  //
+  //   let i = 0;
+  //   let j = 0;
+  //   let k = 0;
+  //   let sumWidth = 0;
+  //
+  //   while (i < rangeHands.length) {
+  //     if (j == 13) {
+  //       boxes.push(
+  //         <Box key={k} sx={{ height: 30, width: 585 - sumWidth, border: 0.5 }} className="grid-item"></Box>
+  //       )
+  //       console.log(sumWidth);
+  //       j = 0;
+  //       sumWidth = 0;
+  //     } else {
+  //       sumWidth += parseInt(widths[i]);
+  //       boxes.push(
+  //         <Box key={k} sx={{ height: heights[i], width: widths[i], border: 0.5 }} className="grid-item">
+  //           <p>{handSerializer(rangeHands[i])}</p>
+  //         </Box>
+  //       );
+  //       i++;
+  //       j++;
+  //     }
+  //     k++;
+  //   }
+  //
+  //   return boxes;
+  // }
+
+  const calculateOffset = (hand: Hand) => {
+    return (hand.firstRank - hand.secondRank - 1) * -15;
+  }
+
   return (
-    <div ref={gridRef} className="grid">
+    <div ref={gridRef} className={gridClass}>
       {rangeHands.map((hand, idx) => (
-        <Box key={idx} sx={{ height: heights[idx], width: widths[idx], border: 0.5 }} className="grid-item">
+        <Box data-offset={calculateOffset(hand)} key={idx} sx={{ height: heights[idx], width: widths[idx], border: 0.5 }} className="grid-item">
           <p>{handSerializer(hand)}</p>
         </Box>
       ))}
