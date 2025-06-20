@@ -5,7 +5,7 @@ import { createDefaultRange } from './range_mgr/utils'
 function App() {
   return (
     <>
-      <RangeDisplay range={createDefaultRange()} rangeMode="MOSAIC" />
+      <RangeDisplay tileSize={60} range={createDefaultRange()} rangeMode="SQUARE" />
     </>
   )
 }
