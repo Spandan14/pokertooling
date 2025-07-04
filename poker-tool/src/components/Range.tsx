@@ -2,10 +2,10 @@ import './Range.css'
 import '../styles/fonts.css'
 
 import { Box } from '@mui/material';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Isotope from 'isotope-layout';
-import type { Range } from '../range_mgr/types.ts';
-import { handSerializer, sortHands } from '../range_mgr/utils.ts';
+import type { Hand, Range } from '../range_mgr/types.ts';
+import { handDeserializer, handSerializer, sortHands } from '../range_mgr/utils.ts';
 
 export const RangeModeUnion = {
   SQUARE: 'SQUARE',
@@ -16,8 +16,12 @@ type RangeMode = typeof RangeModeUnion[keyof typeof RangeModeUnion];
 
 interface RangeDisplayProps {
   range: Range;
+  setRange: (range: Range) => void;
+
   rangeMode: RangeMode;
   tileSize: number;
+
+  tileClickHandlers: Map<string, (hand: Hand, range: Range) => void>;
 }
 
 const aspectRatio = 1;
@@ -25,6 +29,21 @@ const aspectRatio = 1;
 export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayProps) => {
   const gridRef = React.useRef<HTMLDivElement>(null);
   const iso = React.useRef<Isotope | null>(null);
+
+  const isMouseDown = useRef(false);
+
+  useEffect(() => {
+    const handleMouseDown = () => { isMouseDown.current = true; };
+    const handleMouseUp = () => { isMouseDown.current = false; };
+
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -45,9 +64,21 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
     }
   }, [props.rangeMode]);
 
-  const rangeHands = sortHands(Array.from(props.range.range.keys()));
+  const rangeHands = sortHands(Array.from(props.range.range.keys())
+    .map(handString => handDeserializer(handString)));
+  console.log('Key hands:', Array.from(props.range.range.keys()));
+  console.log('Range hands:', rangeHands);
+  console.log('Range hands 2: ', rangeHands.map(hand => handSerializer(hand)));
 
   // const gridClass = 'grid-square';
+
+  const tileColor = (hand: Hand): string => {
+    if (props.range.range.get(handSerializer(hand)) !== undefined) {
+      return props.range.range.get(handSerializer(hand))?.length == 0 ? '#0e1116' : '#0000FF';
+    }
+
+    return '#0e1116';
+  }
 
   return (
     <div
@@ -62,23 +93,38 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
       {
         rangeHands.map((hand, idx) => (
           <Box
+            onMouseDown={() => {
+              const handler = props.tileClickHandlers.get(handSerializer(hand));
+              if (handler) {
+                handler(hand, props.range);
+              }
+            }}
+            onMouseEnter={() => {
+              if (!isMouseDown.current) {
+                return;
+              }
+
+              const handler = props.tileClickHandlers.get(handSerializer(hand));
+              if (handler) {
+                handler(hand, props.range);
+              }
+            }}
             key={idx}
             sx={{
               height: props.tileSize,
               width: props.tileSize * aspectRatio,
               alignItems: 'flex-end',
-              // border: '0.25px solid white',
               margin: '0.5px',
               justifyContent: 'flex-end',
               padding: 0.4,
               display: 'flex',
-              // color: hand.suited ? '#0000FF' : '#f1dede',
               color: 'white',
-              backgroundColor: hand.suited ? '#0e1116' : '#0000FF',
-              // backgroundColor: '#0e1116',
+              // backgroundColor: props.range.range.get(handSerializer(hand)) ? '#0e1116' : '#0000FF',
+              backgroundColor: tileColor(hand),
+              // backgroundColor: hand.suited ? '#0e1116' : '#0000FF',
             }}
             className="grid-item">
-            <p className={".inria-sans-light"}>{handSerializer(hand)}</p>
+            <p className={"inria-sans-light tile-text"}>{handSerializer(hand)}</p>
           </Box>
         ))
       }

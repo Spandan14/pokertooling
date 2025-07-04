@@ -3,19 +3,20 @@ import type { Hand, Range, Strategy, PlayerPosition, HERO_POSITION_LABEL } from 
 
 // Hands
 const handComparator = (a: Hand, b: Hand): number => {
-    // // Primary sort: by first rank (higher ranks first: A=14, K=13, etc.)
+    if (a.firstRank === a.secondRank) {
+        return b.suited ? -1 : 1;
+    }
+
+    if (a.suited !== b.suited) {
+        return a.suited ? -1 : 1;
+    }
+
     if (a.firstRank !== b.firstRank) {
         return b.firstRank - a.firstRank;
     }
 
-    // Secondary sort: by second rank (higher ranks first)
     if (a.secondRank !== b.secondRank) {
         return b.secondRank - a.secondRank;
-    }
-
-    // Tertiary sort: suited before offsuit for same hand
-    if (a.suited !== b.suited) {
-        return a.suited ? -1 : 1;
     }
 
     return 0;
@@ -44,23 +45,44 @@ export const handSerializer = (hand: Hand): string => {
         + `${hand.firstRank === hand.secondRank ? '' : (hand.suited ? 's' : 'o')}`;
 }
 
+export const handDeserializer = (handString: string): Hand => {
+    const rank1 = handString[0];
+    const rank2 = handString[1];
+    const suited = handString.endsWith('s');
+    const firstRank = rank1 === 'T' ? 10 : rank1 === 'J' ? 11 : rank1 === 'Q' ? 12 : rank1 === 'K' ? 13 : rank1 === 'A' ? 14 : parseInt(rank1);
+    const secondRank = rank2 === 'T' ? 10 : rank2 === 'J' ? 11 : rank2 === 'Q' ? 12 : rank2 === 'K' ? 13 : rank2 === 'A' ? 14 : parseInt(rank2);
 
-// Ranges
-const defaultRangeBuilder: () => Range = () => {
-    const range: Map<Hand, Strategy[]> = new Map();
+    // key! really important because of how hands are serialized
+    return suited ? { firstRank, secondRank, suited } : { secondRank, firstRank, suited };
+}
 
-    // Initialize the range with all possible hands
+export const generateAllHands = (): Hand[] => {
+    const hands: Hand[] = [];
     for (let firstRank = 2; firstRank <= 14; firstRank++) {
         for (let secondRank = 2; secondRank <= 14; secondRank++) {
             if (firstRank === secondRank) {
                 // Pocket pairs
-                range.set({ firstRank, secondRank, suited: false }, []);
+                hands.push({ firstRank, secondRank, suited: false });
             } else {
-                // suit deteermination
-                range.set({ firstRank, secondRank, suited: firstRank > secondRank }, []);
+                // suit determination
+                hands.push({ firstRank, secondRank, suited: firstRank > secondRank });
             }
         }
     }
+    return hands;
+}
+
+
+
+// Ranges
+const defaultRangeBuilder: () => Range = () => {
+    const range: Map<string, Strategy[]> = new Map();
+
+    // Initialize the range with all possible hands
+    const allHands = generateAllHands();
+    allHands.forEach(hand => {
+        range.set(handSerializer(hand), []);
+    });
 
     return {
         heroPosition: brand<PlayerPosition, HERO_POSITION_LABEL>('BTN'),

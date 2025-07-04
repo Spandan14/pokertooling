@@ -59,7 +59,7 @@ interface Range {
     heroPosition: HeroPosition;
     history: History;
     actions: Action[];
-    range: Map<Hand, Strategy[]>;
+    range: Map<string, Strategy[]>;
 }
 
 export type {

@@ -6,3 +6,7 @@
 .grid-item {
   display: inline-block;
 }
+
+.tile-text {
+  user-select: none;
+}
