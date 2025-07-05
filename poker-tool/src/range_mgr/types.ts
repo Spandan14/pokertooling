@@ -29,8 +29,12 @@ type HERO_POSITION_LABEL = 'HeroPosition';
 type HistoricalPosition = Branded<PlayerPosition, HISTORICAL_POSITION_LABEL>;
 type HeroPosition = Branded<PlayerPosition, HERO_POSITION_LABEL>;
 
+type ACTION_TYPE_LABEL = 'ActionType';
+
+type ActionType = Branded<PlayerAction, ACTION_TYPE_LABEL>;
+
 interface Action {
-    actionType: PlayerAction;
+    actionType: ActionType;
     actionAmount: number;
 }
 
@@ -50,16 +54,11 @@ interface Hand {
     suited: boolean;
 }
 
-interface Strategy {
-    action: Action;
-    frequency: number;
-}
-
 interface Range {
     heroPosition: HeroPosition;
     history: History;
     actions: Action[];
-    range: Map<string, Strategy[]>;
+    range: Map<string, Map<string, number>>;
 }
 
 export type {
@@ -69,10 +68,11 @@ export type {
     HERO_POSITION_LABEL,
     HistoricalPosition,
     HeroPosition,
+    ACTION_TYPE_LABEL,
+    ActionType,
     Action,
     HistoryAction,
     History,
     Hand,
-    Strategy,
     Range,
 }

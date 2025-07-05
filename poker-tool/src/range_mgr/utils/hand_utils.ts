@@ -1,4 +1,5 @@
-import type { Hand, Range, Strategy, PlayerPosition, HERO_POSITION_LABEL } from "./types";
+import { brand } from "../brand";
+import type { Hand, Range, PlayerPosition, HERO_POSITION_LABEL } from "../types";
 
 // Hands
 const handComparator = (a: Hand, b: Hand): number => {
@@ -70,6 +71,3 @@ export const generateAllHands = (): Hand[] => {
     }
     return hands;
 }
-
-
-

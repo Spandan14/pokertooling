@@ -5,7 +5,7 @@ import { Box } from '@mui/material';
 import React, { useEffect, useRef } from 'react';
 import Isotope from 'isotope-layout';
 import type { Hand, Range } from '../range_mgr/types.ts';
-import { handDeserializer, handSerializer, sortHands } from '../range_mgr/utils.ts';
+import { handDeserializer, handSerializer, sortHands } from '../range_mgr/utils/hand_utils';
 
 export const RangeModeUnion = {
   SQUARE: 'SQUARE',
@@ -66,18 +66,30 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
 
   const rangeHands = sortHands(Array.from(props.range.range.keys())
     .map(handString => handDeserializer(handString)));
-  console.log('Key hands:', Array.from(props.range.range.keys()));
-  console.log('Range hands:', rangeHands);
-  console.log('Range hands 2: ', rangeHands.map(hand => handSerializer(hand)));
 
-  // const gridClass = 'grid-square';
+  const strategyColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
 
   const tileColor = (hand: Hand): string => {
-    if (props.range.range.get(handSerializer(hand)) !== undefined) {
-      return props.range.range.get(handSerializer(hand))?.length == 0 ? '#0e1116' : '#0000FF';
+    if (props.range.range.get(handSerializer(hand)) === undefined) {
+      return '#0e1116';
     }
 
-    return '#0e1116';
+    const strategies = props.range.range.get(handSerializer(hand));
+    let color = 'linear-gradient(to right, ';
+    let total = 0;
+
+    let index = 0;
+    strategies?.forEach((frequency: number) => {
+      const strategyColor = strategyColors[index % strategyColors.length];
+      color += `${strategyColor} ${total}%, `;
+      total += frequency;
+      color += `${strategyColor} ${total}%, `;
+      index++;
+    })
+
+    color += `#0e1116 ${total}%)`;
+    console.log("Tile color for hand:", handSerializer(hand), "is", color);
+    return color;
   }
 
   return (
@@ -94,6 +106,7 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
         rangeHands.map((hand, idx) => (
           <Box
             onMouseDown={() => {
+              console.log("Mouse down on hand:", handSerializer(hand));
               const handler = props.tileClickHandlers.get(handSerializer(hand));
               if (handler) {
                 handler(hand, props.range);
@@ -119,9 +132,7 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
               padding: 0.4,
               display: 'flex',
               color: 'white',
-              // backgroundColor: props.range.range.get(handSerializer(hand)) ? '#0e1116' : '#0000FF',
-              backgroundColor: tileColor(hand),
-              // backgroundColor: hand.suited ? '#0e1116' : '#0000FF',
+              background: tileColor(hand),
             }}
             className="grid-item">
             <p className={"inria-sans-light tile-text"}>{handSerializer(hand)}</p>
