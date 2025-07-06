@@ -5,63 +5,82 @@ import { type Action, type ACTION_TYPE_LABEL, type Hand, type PlayerAction, type
 import { createDefaultRange } from './range_mgr/utils/range_utils';
 import { brand } from './range_mgr/brand';
 import { actionSerializer } from './range_mgr/utils/action_utils';
-import { generateAllHands, handSerializer } from './range_mgr/utils/hand_utils';
+import { handSerializer } from './range_mgr/utils/hand_utils';
+import { defaultBrushPainter, defaultBrushRemover } from './range_mgr/brushes';
 
 function App() {
   const [range, setRange] = useState<Range>(createDefaultRange());
-  const [strategyColors, setStrategyColors] = useState<Map<string, string>>(new Map<string, string>());
 
-  const tileClickHandlers = new Map<string, (hand: Hand) => void>();
-  const tileRightClickHandlers = new Map<string, (hand: Hand) => void>();
+  const brushAction: Action = {
+    actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(PlayerActionUnion.CALL),
+    actionAmount: 1,
+  };
+  const brushActionFrequency = 40;
 
-  const tilePainter = (hand: Hand) => {
-    const newRange = { ...range };
-    let strategy = newRange.range.get(handSerializer(hand));
+  const defaultStrategyColors = new Map<string, string>([[actionSerializer(brushAction), '#FF0000']]);
+  const [strategyColors] = useState<Map<string, string>>(defaultStrategyColors);
+
+  const tilePainter = (hand: Hand): number => {
+    let strategy = range.range.get(handSerializer(hand));
     if (!strategy) {
       strategy = new Map<string, number>();
     }
 
-    const newAction: Action = {
-      actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(PlayerActionUnion.CALL),
-      actionAmount: Array.from(strategy.keys()).length,
-    };
+    const newStrategy = defaultBrushPainter(strategy, brushAction, brushActionFrequency);
 
-    strategy.set(actionSerializer(newAction), 25);
-    newRange.range.set(handSerializer(hand), strategy);
-
-    setStrategyColors(new Map(strategyColors.entries()).set(actionSerializer(newAction), '#FF0000'));
-
-    setRange(newRange);
-  }
-
-  const tileRemover = (hand: Hand) => {
     const newRange = { ...range };
-    const strategy = newRange.range.get(handSerializer(hand));
-
-    if (!strategy) {
-      return;
-    }
-
-    const actionToRemove: Action = {
-      actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(PlayerActionUnion.CALL),
-      actionAmount: Array.from(strategy.keys()).length - 1,
-    };
-
-    if (strategy.get(actionSerializer(actionToRemove))) {
-      strategy.delete(actionSerializer(actionToRemove));
-    }
-
-    newRange.range.set(handSerializer(hand), strategy);
+    newRange.range.set(handSerializer(hand), newStrategy);
 
     setRange(newRange);
+
+    return 0;
   }
 
-  const allHands = generateAllHands();
-  allHands.forEach(hand => {
-    tileClickHandlers.set(handSerializer(hand), tilePainter);
-    tileRightClickHandlers.set(handSerializer(hand), tileRemover);
-  });
+  const tileRemover = (hand: Hand): number => {
+    const strategy = range.range.get(handSerializer(hand));
+    if (!strategy) {
+      return 0; // No strategy to remove
+    }
 
+    const newStrategy = defaultBrushRemover(strategy, brushAction, brushActionFrequency);
+
+    const newRange = { ...range };
+    newRange.range.set(handSerializer(hand), newStrategy);
+
+    setRange(newRange);
+
+    return 0;
+  }
+
+  const determineTileColor = (hand: Hand): string => {
+    if (range.range.get(handSerializer(hand)) === undefined) {
+      return '#0e1116';
+    }
+
+    const strategies = range.range.get(handSerializer(hand));
+    let color = 'linear-gradient(to right, ';
+    let total = 0;
+
+    strategies?.forEach((frequency: number, action: string) => {
+      const strategyColor = strategyColors.get(action);
+      color += `${strategyColor} ${total}%, `;
+      total += frequency;
+      color += `${strategyColor} ${total}%, `;
+    })
+
+    color += `#0e1116 ${total}%)`;
+
+    return color;
+  }
+
+  const determineTileDisabled = (hand: Hand): boolean => {
+    const strategies = range.range.get(handSerializer(hand));
+    if (!strategies) {
+      return false;
+    }
+
+    return Array.from(strategies.values()).reduce((a, b) => a + b, 0) + brushActionFrequency > 100;
+  }
 
   return (
     <>
@@ -70,8 +89,10 @@ function App() {
         tileSize={60}
         range={range}
         setRange={setRange}
-        tileClickHandlers={tileClickHandlers}
-        tileRightClickHandlers={tileRightClickHandlers}
+        tileClickHandler={tilePainter}
+        tileRightClickHandler={tileRemover}
+        determineTileColor={determineTileColor}
+        determineTileDisabled={determineTileDisabled}
         rangeMode="SQUARE" />
     </>
   )

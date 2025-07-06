@@ -23,8 +23,11 @@ interface RangeDisplayProps {
 
   strategyColors: Map<string, string>;
 
-  tileClickHandlers: Map<string, (hand: Hand) => void>;
-  tileRightClickHandlers: Map<string, (hand: Hand) => void>;
+  tileClickHandler: (hand: Hand) => number;
+  tileRightClickHandler: (hand: Hand) => number;
+
+  determineTileColor: (hand: Hand) => string;
+  determineTileDisabled: (hand: Hand) => boolean;
 }
 
 const aspectRatio = 1;
@@ -75,38 +78,12 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
   const rangeHands = sortHands(Array.from(props.range.range.keys())
     .map(handString => handDeserializer(handString)));
 
-  const determineTileColor = (hand: Hand): string => {
-    if (props.range.range.get(handSerializer(hand)) === undefined) {
-      return '#0e1116';
-    }
-
-    const strategies = props.range.range.get(handSerializer(hand));
-    let color = 'linear-gradient(to right, ';
-    let total = 0;
-
-    strategies?.forEach((frequency: number, action: string) => {
-      const strategyColor = props.strategyColors.get(action);
-      color += `${strategyColor} ${total}%, `;
-      total += frequency;
-      color += `${strategyColor} ${total}%, `;
-    })
-
-    color += `#0e1116 ${total}%)`;
-    return color;
-  }
-
   const runTileClickHandler = (hand: Hand) => {
-    const handler = props.tileClickHandlers.get(handSerializer(hand));
-    if (handler) {
-      handler(hand);
-    }
+    props.tileClickHandler(hand);
   }
 
   const runTileRightClickHandler = (hand: Hand) => {
-    const handler = props.tileRightClickHandlers.get(handSerializer(hand));
-    if (handler) {
-      handler(hand);
-    }
+    props.tileRightClickHandler(hand);
   }
 
   return (
@@ -149,9 +126,9 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
               padding: 0.4,
               display: 'flex',
               color: 'white',
-              background: determineTileColor(hand),
+              background: props.determineTileColor(hand),
             }}
-            className="grid-item">
+            className={props.determineTileDisabled(hand) ? "grid-item disabled-tile" : "grid-item"}>
             <p className={"inria-sans-light tile-text"}>{handSerializer(hand)}</p>
           </Box>
         ))
