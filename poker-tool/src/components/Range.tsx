@@ -21,7 +21,10 @@ interface RangeDisplayProps {
   rangeMode: RangeMode;
   tileSize: number;
 
-  tileClickHandlers: Map<string, (hand: Hand, range: Range) => void>;
+  strategyColors: Map<string, string>;
+
+  tileClickHandlers: Map<string, (hand: Hand) => void>;
+  tileRightClickHandlers: Map<string, (hand: Hand) => void>;
 }
 
 const aspectRatio = 1;
@@ -30,11 +33,16 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
   const gridRef = React.useRef<HTMLDivElement>(null);
   const iso = React.useRef<Isotope | null>(null);
 
-  const isMouseDown = useRef(false);
+  const mouseButtonDown = useRef<null | number>(null);
 
   useEffect(() => {
-    const handleMouseDown = () => { isMouseDown.current = true; };
-    const handleMouseUp = () => { isMouseDown.current = false; };
+    const handleMouseDown = (e: MouseEvent) => {
+      mouseButtonDown.current = e.button;
+    };
+
+    const handleMouseUp = () => {
+      mouseButtonDown.current = null;
+    };
 
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
@@ -67,9 +75,7 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
   const rangeHands = sortHands(Array.from(props.range.range.keys())
     .map(handString => handDeserializer(handString)));
 
-  const strategyColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-
-  const tileColor = (hand: Hand): string => {
+  const determineTileColor = (hand: Hand): string => {
     if (props.range.range.get(handSerializer(hand)) === undefined) {
       return '#0e1116';
     }
@@ -78,18 +84,29 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
     let color = 'linear-gradient(to right, ';
     let total = 0;
 
-    let index = 0;
-    strategies?.forEach((frequency: number) => {
-      const strategyColor = strategyColors[index % strategyColors.length];
+    strategies?.forEach((frequency: number, action: string) => {
+      const strategyColor = props.strategyColors.get(action);
       color += `${strategyColor} ${total}%, `;
       total += frequency;
       color += `${strategyColor} ${total}%, `;
-      index++;
     })
 
     color += `#0e1116 ${total}%)`;
-    console.log("Tile color for hand:", handSerializer(hand), "is", color);
     return color;
+  }
+
+  const runTileClickHandler = (hand: Hand) => {
+    const handler = props.tileClickHandlers.get(handSerializer(hand));
+    if (handler) {
+      handler(hand);
+    }
+  }
+
+  const runTileRightClickHandler = (hand: Hand) => {
+    const handler = props.tileRightClickHandlers.get(handSerializer(hand));
+    if (handler) {
+      handler(hand);
+    }
   }
 
   return (
@@ -105,22 +122,22 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
       {
         rangeHands.map((hand, idx) => (
           <Box
-            onMouseDown={() => {
-              console.log("Mouse down on hand:", handSerializer(hand));
-              const handler = props.tileClickHandlers.get(handSerializer(hand));
-              if (handler) {
-                handler(hand, props.range);
+            onMouseDown={(event) => {
+              if (event.button === 0) {
+                runTileClickHandler(hand);
+              } else if (event.button === 2) {
+                runTileRightClickHandler(hand);
               }
             }}
             onMouseEnter={() => {
-              if (!isMouseDown.current) {
-                return;
+              if (mouseButtonDown.current === 0) {
+                runTileClickHandler(hand);
+              } else if (mouseButtonDown.current === 2) {
+                runTileRightClickHandler(hand);
               }
-
-              const handler = props.tileClickHandlers.get(handSerializer(hand));
-              if (handler) {
-                handler(hand, props.range);
-              }
+            }}
+            onContextMenu={(event) => {
+              event.preventDefault();
             }}
             key={idx}
             sx={{
@@ -132,7 +149,7 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
               padding: 0.4,
               display: 'flex',
               color: 'white',
-              background: tileColor(hand),
+              background: determineTileColor(hand),
             }}
             className="grid-item">
             <p className={"inria-sans-light tile-text"}>{handSerializer(hand)}</p>
