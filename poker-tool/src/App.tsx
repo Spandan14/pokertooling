@@ -1,32 +1,43 @@
 import { useState } from 'react';
 import './App.css'
 import { RangeDisplay } from './components/Range'
-import { type Action, type ACTION_TYPE_LABEL, type Hand, type PlayerAction, type Range, PlayerActionUnion } from './range_mgr/types';
+import { type Hand, type Range } from './range_mgr/types';
 import { createDefaultRange } from './range_mgr/utils/range_utils';
-import { brand } from './range_mgr/brand';
-import { actionSerializer } from './range_mgr/utils/action_utils';
 import { handSerializer } from './range_mgr/utils/hand_utils';
 import { defaultBrushPainter, defaultBrushRemover } from './range_mgr/brushes';
+import { useRangePainterContext } from './contexts/UseRangePainterContext';
+import { BrushSelector } from './components/BrushSelector';
+import Grid from '@mui/material/Grid';
 
 function App() {
   const [range, setRange] = useState<Range>(createDefaultRange());
 
-  const brushAction: Action = {
-    actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(PlayerActionUnion.CALL),
-    actionAmount: 1,
-  };
-  const brushActionFrequency = 40;
+  const {
+    brushAction,
+    brushFrequency,
+    strategyColors,
+  } = useRangePainterContext();
 
-  const defaultStrategyColors = new Map<string, string>([[actionSerializer(brushAction), '#FF0000']]);
-  const [strategyColors] = useState<Map<string, string>>(defaultStrategyColors);
+  // const brushAction: Action = {
+  //   actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(PlayerActionUnion.CALL),
+  //   actionAmount: 1,
+  // };
+  // const brushActionFrequency = 25;
+
+  // const defaultStrategyColors = new Map<string, string>([[actionSerializer(brushAction), '#FF0000']]);
+  // const [strategyColors] = useState<Map<string, string>>(defaultStrategyColors);
 
   const tilePainter = (hand: Hand): number => {
+    if (!brushAction || brushFrequency <= 0) {
+      return 0; // No action to paint
+    }
+
     let strategy = range.range.get(handSerializer(hand));
     if (!strategy) {
       strategy = new Map<string, number>();
     }
 
-    const newStrategy = defaultBrushPainter(strategy, brushAction, brushActionFrequency);
+    const newStrategy = defaultBrushPainter(strategy, brushAction, brushFrequency);
 
     const newRange = { ...range };
     newRange.range.set(handSerializer(hand), newStrategy);
@@ -37,12 +48,16 @@ function App() {
   }
 
   const tileRemover = (hand: Hand): number => {
+    if (!brushAction || brushFrequency <= 0) {
+      return 0; // No action to remove
+    }
+
     const strategy = range.range.get(handSerializer(hand));
     if (!strategy) {
       return 0; // No strategy to remove
     }
 
-    const newStrategy = defaultBrushRemover(strategy, brushAction, brushActionFrequency);
+    const newStrategy = defaultBrushRemover(strategy, brushAction, brushFrequency);
 
     const newRange = { ...range };
     newRange.range.set(handSerializer(hand), newStrategy);
@@ -79,22 +94,27 @@ function App() {
       return false;
     }
 
-    return Array.from(strategies.values()).reduce((a, b) => a + b, 0) + brushActionFrequency > 100;
+    return Array.from(strategies.values()).reduce((a, b) => a + b, 0) + brushFrequency > 100;
   }
 
   return (
-    <>
-      <RangeDisplay
-        strategyColors={strategyColors}
-        tileSize={60}
-        range={range}
-        setRange={setRange}
-        tileClickHandler={tilePainter}
-        tileRightClickHandler={tileRemover}
-        determineTileColor={determineTileColor}
-        determineTileDisabled={determineTileDisabled}
-        rangeMode="SQUARE" />
-    </>
+    <Grid container spacing={8}>
+      <Grid size={8}>
+        <RangeDisplay
+          strategyColors={strategyColors}
+          tileSize={60}
+          range={range}
+          setRange={setRange}
+          tileClickHandler={tilePainter}
+          tileRightClickHandler={tileRemover}
+          determineTileColor={determineTileColor}
+          determineTileDisabled={determineTileDisabled}
+          rangeMode="SQUARE" />
+      </Grid>
+      <Grid size={4}>
+        <BrushSelector />
+      </Grid>
+    </Grid>
   )
 }
 

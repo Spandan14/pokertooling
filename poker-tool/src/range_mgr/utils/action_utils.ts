@@ -14,3 +14,24 @@ export const actionDeserializer = (actionString: string): Action => {
         actionAmount,
     };
 }
+
+export const actionComparator = (a: Action, b: Action): number => {
+    const actionOrder: Record<PlayerAction, number> = {
+        ALL_IN: 0,
+        RAISE: 1,
+        CALL: 2,
+        CHECK: 3,
+        FOLD: 4,
+    };
+
+    const orderA = actionOrder[a.actionType as PlayerAction];
+    const orderB = actionOrder[b.actionType as PlayerAction];
+
+    if (orderA !== orderB) {
+        return orderA - orderB;
+    }
+
+    return a.actionAmount - b.actionAmount;
+}
+
+

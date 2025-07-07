@@ -95,7 +95,8 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
         display: 'grid',
         border: '0.25px solid #f1dede',
         backgroundColor: '#f1dede',
-      }}>
+      }}
+      onContextMenu={(e) => e.preventDefault()}>
       {
         rangeHands.map((hand, idx) => (
           <Box
