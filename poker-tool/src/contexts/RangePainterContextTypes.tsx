@@ -1,8 +1,8 @@
 import type { Action } from "../range_mgr/types";
 
 interface RangePainterContextInterface {
-  brushAction: Action | undefined;
-  setBrushAction: (action: Action | undefined) => void;
+  brushAction: Action;
+  setBrushAction: (action: Action) => void;
 
   brushFrequency: number;
   setBrushFrequency: (frequency: number) => void;

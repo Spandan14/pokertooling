@@ -27,24 +27,22 @@ export const BrushSelector: React.FC = () => {
 
   const colorChangeHandler = (color: { hex: string }) => {
     setColor(color.hex);
-    if (brushAction) {
-      const newStrategyColors = new Map(strategyColors);
-      newStrategyColors.set(actionSerializer(brushAction), color.hex);
-      setStrategyColors(newStrategyColors);
-    }
+    const newStrategyColors = new Map(strategyColors);
+    newStrategyColors.set(actionSerializer(brushAction), color.hex);
+    setStrategyColors(newStrategyColors);
   }
 
   const handleBrushActionTypeChange = (event: SelectChangeEvent) => {
     const newAction: Action = {
       actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(event.target.value as PlayerAction),
-      actionAmount: brushAction ? brushAction.actionAmount : 0,
+      actionAmount: brushAction.actionAmount,
     };
 
     setBrushAction(newAction);
   }
 
   const handleBrushActionValueChange = (value: number | null) => {
-    if (brushAction && value !== null) {
+    if (value !== null) {
       const newAction: Action = {
         ...brushAction,
         actionAmount: value
