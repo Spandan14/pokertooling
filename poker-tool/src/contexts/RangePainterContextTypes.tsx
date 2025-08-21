@@ -9,6 +9,9 @@ interface RangePainterContextInterface {
 
   strategyColors: Map<string, string>;
   setStrategyColors: (colors: Map<string, string>) => void;
+
+  palette: string[];
+  setPalette: (palette: string[]) => void;
 }
 
 interface RangePainterContextProviderProps {

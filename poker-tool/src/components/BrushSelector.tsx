@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRangePainterContext } from "../contexts/UseRangePainterContext";
 import { actionSerializer } from "../range_mgr/utils/action_utils";
 import MenuItem from "@mui/material/MenuItem";
@@ -10,6 +10,7 @@ import { brand } from "../range_mgr/brand";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import { NumberField } from "@base-ui-components/react/number-field";
+import { COLOR_PALETTE_SIZE } from "../contexts/RangePainterContextProvider";
 
 // interface BrushSelectorProps { }
 
@@ -20,16 +21,34 @@ export const BrushSelector: React.FC = () => {
     brushFrequency,
     setBrushFrequency,
     strategyColors,
-    setStrategyColors
+    setStrategyColors,
+    palette,
   } = useRangePainterContext();
 
-  const [color, setColor] = useState<string>('#FF0000');
+  const [currentPaletteIndex, setCurrentPaletteIndex] = useState<number>(1);
+  const [color, setColor] = useState<string>(palette[0]);
 
   const colorChangeHandler = (color: { hex: string }) => {
     setColor(color.hex);
     const newStrategyColors = new Map(strategyColors);
     newStrategyColors.set(actionSerializer(brushAction), color.hex);
     setStrategyColors(newStrategyColors);
+  }
+
+  const updateColorFromActionChange = (newAction: Action) => {
+    if (strategyColors.has(actionSerializer(newAction))) {
+      setColor(strategyColors.get(actionSerializer(newAction))!);
+      return;
+    }
+
+    // update strategy colors to use this default color 
+    setColor(palette[currentPaletteIndex]);
+
+    const newStrategyColors = new Map(strategyColors);
+    newStrategyColors.set(actionSerializer(newAction), palette[currentPaletteIndex]);
+    setStrategyColors(newStrategyColors);
+
+    setCurrentPaletteIndex((currentPaletteIndex + 1) % COLOR_PALETTE_SIZE);
   }
 
   const handleBrushActionTypeChange = (event: SelectChangeEvent) => {
@@ -39,6 +58,7 @@ export const BrushSelector: React.FC = () => {
     };
 
     setBrushAction(newAction);
+    updateColorFromActionChange(newAction);
   }
 
   const handleBrushActionValueChange = (value: number | null) => {
@@ -47,9 +67,12 @@ export const BrushSelector: React.FC = () => {
         ...brushAction,
         actionAmount: value
       };
+
       setBrushAction(newAction);
+      updateColorFromActionChange(newAction);
     }
   }
+
   const frequencyMarks = [
     { value: 0, label: '0%' },
     { value: 50, label: '50%' },
