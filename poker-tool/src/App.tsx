@@ -18,15 +18,6 @@ function App() {
     strategyColors,
   } = useRangePainterContext();
 
-  // const brushAction: Action = {
-  //   actionType: brand<PlayerAction, ACTION_TYPE_LABEL>(PlayerActionUnion.CALL),
-  //   actionAmount: 1,
-  // };
-  // const brushActionFrequency = 25;
-
-  // const defaultStrategyColors = new Map<string, string>([[actionSerializer(brushAction), '#FF0000']]);
-  // const [strategyColors] = useState<Map<string, string>>(defaultStrategyColors);
-
   const tilePainter = (hand: Hand): number => {
     if (!brushAction || brushFrequency <= 0) {
       return 0; // No action to paint

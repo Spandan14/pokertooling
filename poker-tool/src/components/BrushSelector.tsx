@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useRangePainterContext } from "../contexts/UseRangePainterContext";
 import { actionSerializer } from "../range_mgr/utils/action_utils";
 import MenuItem from "@mui/material/MenuItem";

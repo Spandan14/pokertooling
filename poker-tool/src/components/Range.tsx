@@ -2,10 +2,11 @@ import './Range.css'
 import '../styles/fonts.css'
 
 import { Box } from '@mui/material';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Isotope from 'isotope-layout';
 import type { Hand, Range } from '../range_mgr/types.ts';
 import { handDeserializer, handSerializer, sortHands } from '../range_mgr/utils/hand_utils';
+import { TileInfo } from './TileInfo.tsx';
 
 export const RangeModeUnion = {
   SQUARE: 'SQUARE',
@@ -33,8 +34,8 @@ interface RangeDisplayProps {
 const aspectRatio = 1;
 
 export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayProps) => {
-  const gridRef = React.useRef<HTMLDivElement>(null);
-  const iso = React.useRef<Isotope | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const iso = useRef<Isotope | null>(null);
 
   const mouseButtonDown = useRef<null | number>(null);
 
@@ -86,6 +87,8 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
     props.tileRightClickHandler(hand);
   }
 
+  const [tilePreviewEnabled, setTilePreviewEnabled] = useState<string | null>(null);
+
   return (
     <div
       ref={gridRef}
@@ -112,7 +115,12 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
                 runTileClickHandler(hand);
               } else if (mouseButtonDown.current === 2) {
                 runTileRightClickHandler(hand);
+              } else {
+                setTilePreviewEnabled(handSerializer(hand));
               }
+            }}
+            onMouseLeave={() => {
+              setTilePreviewEnabled(null);
             }}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -130,7 +138,13 @@ export const RangeDisplay: React.FC<RangeDisplayProps> = (props: RangeDisplayPro
               background: props.determineTileColor(hand),
             }}
             className={props.determineTileDisabled(hand) ? "grid-item disabled-tile" : "grid-item"}>
-            <p className={"inria-sans-light tile-text"}>{handSerializer(hand)}</p>
+            {tilePreviewEnabled !== handSerializer(hand) && <p className={"inria-sans-light tile-text"}>{handSerializer(hand)}</p>}
+            {tilePreviewEnabled === handSerializer(hand) && <TileInfo
+              hand={hand}
+              tileSize={props.tileSize}
+              strategyColors={props.strategyColors}
+              determineTileColor={props.determineTileColor}
+              determineTileDisabled={props.determineTileDisabled} />}
           </Box>
         ))
       }
